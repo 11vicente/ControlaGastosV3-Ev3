@@ -3,56 +3,105 @@ package com.example.controldegastosv2.ui.theme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.controldegastosv2.data.GastoEntity
-
-
-import java.text.SimpleDateFormat
-import java.util.*
+import com.example.controldegastosv2.data.Gasto
 import com.example.controldegastosv2.ui.theme.viewmodels.GastoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListaGastosScreen(
-    gastoViewModel: GastoViewModel = viewModel()
+    viewModel: GastoViewModel = viewModel(),
+    onAgregarGasto: () -> Unit
 ) {
-    val gastos by gastoViewModel.gastos.observeAsState(emptyList())
+    val gastos by viewModel.gastos.observeAsState(emptyList())
+    val error by viewModel.error.observeAsState(initial = null)
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Lista de Gastos") }) }
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAgregarGasto) {
+                Text("+")
+            }
+        }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
+        Column(
+            Modifier
                 .padding(padding)
+                .padding(16.dp)
+                .fillMaxSize()
         ) {
-            items(gastos) { gasto ->
-                GastoItem(gasto)
+            Text(
+                text = "Mis Gastos",
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // Mostrar error si aparece
+            error?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            if (gastos.isEmpty()) {
+                Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No hay gastos registrados")
+                }
+            } else {
+                LazyColumn {
+                    items(gastos) { gasto ->
+                        GastoItem(
+                            gasto = gasto,
+                            onDelete = { viewModel.eliminarGasto(gasto.id!!) }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun GastoItem(gasto: GastoEntity) {
-    val sdf = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
-    val fechaString = remember(gasto.fecha) { sdf.format(Date(gasto.fecha)) }
-
+fun GastoItem(
+    gasto: Gasto,
+    onDelete: () -> Unit
+) {
     Card(
-        modifier = Modifier
+        Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(vertical = 6.dp),
+        elevation = CardDefaults.cardElevation(3.dp)
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(text = gasto.descripcion, style = MaterialTheme.typography.titleLarge)
-            Text(text = "Monto: $${gasto.monto}")
-            Text(text = "Categoría: ${gasto.categoria}")
-            Text(text = "Fecha: $fechaString")
+        Row(
+            Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(gasto.descripcion, style = MaterialTheme.typography.titleMedium)
+                Text("Categoría: ${gasto.categoria}")
+                Text("Monto: $${gasto.monto}")
+            }
+
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Eliminar gasto"
+                )
+            }
         }
     }
 }
